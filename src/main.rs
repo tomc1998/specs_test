@@ -19,21 +19,31 @@ struct GlobalState {
   delta: u64, 
 }
 
+impl GlobalState {
+  /// Get the current frame delta in seconds.
+  pub fn get_delta_in_s(&self) -> f32 {
+    return self.delta as f32 / 1000000000.0f32;
+  }
+}
+
 /// System for updating position according to velocity.
 struct SysPosUpdate;
 impl specs::System<GlobalState> for SysPosUpdate {
   fn run(&mut self, arg: specs::RunArg, state: GlobalState) {
-    let (mut aabb, vel) = arg.fetch(|w| {
-      (w.write_resource::<CompAABB>(), w.read_resource::<CompVel>())
+    use specs::Join;
+    let (mut all_aabb, all_vel, entities) = arg.fetch(|w| {
+      (w.write::<CompAABB>(), w.read::<CompVel>(), w.entities())
     });
-    aabb.0 += vel.0;
-    aabb.1 += vel.1;
+    for (e_id, aabb, vel) in (&entities, &mut all_aabb, &all_vel).join() {
+      aabb.0 += vel.0 * (state.get_delta_in_s());
+      aabb.1 += vel.1 * (state.get_delta_in_s());
+    }
   }
 }
 
 
 fn main() {
-  let mut global_state = GlobalState { delta: time::precise_time_ns(), prev_time: 0 };
+  let mut global_state = GlobalState { delta: 0, prev_time: time::precise_time_ns() };
   let mut planner : specs::Planner<GlobalState> = {
     let mut w = specs::World::new();
     w.register::<CompAABB>();
@@ -42,21 +52,22 @@ fn main() {
     specs::Planner::new(w)
   };
 
+  planner.add_system::<SysPosUpdate>(SysPosUpdate, "update", 0);
+
   loop {
     use specs::{Gate, Join};
 
     global_state.delta = time::precise_time_ns() - global_state.prev_time;
     global_state.prev_time = time::precise_time_ns();
 
-    planner.add_system(SysPosUpdate, "update", 0);
-
     planner.dispatch(global_state.clone());
+    planner.wait();
 
     let w = planner.mut_world();
     let pos_storage = w.read().pass();
     for e in w.entities().join() {
       let comp : &CompAABB = pos_storage.get(e.clone()).unwrap();
-      println!("{}, {}", comp.0, comp.1);
+      println!("{}, {} - delta = {}", comp.0, comp.1, global_state.get_delta_in_s());
     }
   }
 }

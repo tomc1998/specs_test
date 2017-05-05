@@ -5,5 +5,5 @@ authors = ["Thomas Cheng <thomascheng1998@googlemail.com>"]
 
 [dependencies]
 time = "*"
-specs = "*"
+specs = "0.8.0"
 glium = "*"
