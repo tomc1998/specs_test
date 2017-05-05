@@ -1,0 +1,9 @@
+[package]
+name = "specs_test"
+version = "0.1.0"
+authors = ["Thomas Cheng <thomascheng1998@googlemail.com>"]
+
+[dependencies]
+time = "*"
+specs = "*"
+glium = "*"
