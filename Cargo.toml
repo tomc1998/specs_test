@@ -3,7 +3,27 @@ name = "specs_test"
 version = "0.1.0"
 authors = ["Thomas Cheng <thomascheng1998@googlemail.com>"]
 
+
 [dependencies]
 time = "*"
 specs = "0.8.0"
 glium = "*"
+
+[features]
+
+default = [ 
+  # Feature which contains a list of sub features used throughout the codebase
+  # to alter code at compile time.
+  "conditional-compilation"
+]
+
+conditional-compilation = [
+  # Feature for panicking on VBO overflow. If commented out, the game won't
+  # crash, but just will instead not render some geometry.
+  "vbo_overflow_panic"
+]
+
+# Features for conditional compilation. See the 'conditional-compilation'
+# feature to enable / disable these.
+
+vbo_overflow_panic = []

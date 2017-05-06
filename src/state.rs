@@ -1,9 +1,10 @@
 #[derive(Clone)]
-struct GlobalState { 
+pub struct GlobalState { 
   /// Previous time in ns - unspecified epoch
-  prev_time: u64, 
+  pub prev_time: u64, 
   /// Frame delta in ns
-  delta: u64, 
+  pub delta: u64, 
+
 }
 
 impl GlobalState {

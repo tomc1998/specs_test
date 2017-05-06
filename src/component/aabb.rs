@@ -1,12 +1,12 @@
 use specs;
 
 /// AABB component - X, Y, W, H format.
-struct CompAABB (f32, f32, f32, f32);
+pub struct CompAABB (pub f32, pub f32, pub f32, pub f32);
 impl specs::Component for CompAABB {
   type Storage = specs::VecStorage<CompAABB>;
 }
 
-struct CompVel (f32, f32);
+pub struct CompVel (pub f32, pub f32);
 impl specs::Component for CompVel {
   type Storage = specs::VecStorage<CompVel>;
 }
