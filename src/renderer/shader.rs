@@ -6,6 +6,8 @@ pub fn get_program(display: &GlutinFacade) -> glium::Program {
   let v_shader = r#"
     #version 130
 
+  uniform mat4 proj_mat;
+
     in vec2 pos;
     in vec4 col;
 
@@ -13,7 +15,7 @@ pub fn get_program(display: &GlutinFacade) -> glium::Program {
 
     void main() {
       v_col = col;
-      gl_Position = vec4(pos, 0.0, 1.0);
+      gl_Position = proj_mat*vec4(pos, 0.0, 1.0);
     }
   "#;
 

@@ -34,6 +34,9 @@ pub struct Renderer {
   /// the renderer from different threads to be stored in v_data for the
   /// render() function.
   v_channel_pair: (mpsc::Sender<Vec<Vertex>>, mpsc::Receiver<Vec<Vertex>>),
+
+  /// The projection matrix used to render the game. 
+  proj_mat: [[f32; 4]; 4],
 }
 
 impl Renderer {
@@ -43,11 +46,16 @@ impl Renderer {
   /// * `system` - The SysRenderer being used by the ECS. When rendering,
   ///              vertex data will be buffered from here.
   pub fn new(display: &GlutinFacade) -> Renderer {
+    let (w, h) = display.get_window().unwrap().get_inner_size().unwrap();
     Renderer {
       vbo: VertexBuffer::empty_dynamic(display, VBO_SIZE).unwrap(),
       program: shader::get_program(display),
       v_data: [ Vertex { pos: [0.0; 2], col: [0.0; 4] }; VBO_SIZE ],
       v_channel_pair: mpsc::channel(),
+      proj_mat: [[2.0/w as f32, 0.0,           0.0, -0.0],
+                 [0.0,         -2.0/h as f32,  0.0,  0.0],
+                 [0.0,          0.0,          -1.0,  0.0],
+                 [-1.0,         1.0,           0.0,  1.0]],
     }
   }
 
@@ -56,7 +64,7 @@ impl Renderer {
   /// `render()`.
   pub fn recv_data(&mut self) {
     let mut v_len : usize = 0; // The size of the data being buffered. If this exceeds
-                           // VBO_SIZE, no more data must be buffered.
+    // VBO_SIZE, no more data must be buffered.
     loop {
       let res = self.v_channel_pair.1.try_recv();
       if res.is_err() {
@@ -83,9 +91,23 @@ impl Renderer {
   }
 
   pub fn render<T : glium::Surface>(&mut self, target: &mut T) {
+
+    // Empty indices - basically only rendering sprites, so no need to have it indexed.
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+
+    // Write the vertex data to the VBO
     self.vbo.write(&self.v_data);
-    target.draw(&self.vbo, &indices, &self.program, &glium::uniforms::EmptyUniforms,
+
+    // Load the projection matrix into the uniforms
+    let uniforms = uniform! {
+      proj_mat: self.proj_mat,
+    };
+
+    // Draw everything!
+    target.draw(&self.vbo, 
+                &indices, 
+                &self.program, 
+                &uniforms, 
                 &Default::default()).unwrap();
   }
 
