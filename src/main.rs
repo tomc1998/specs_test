@@ -2,30 +2,20 @@
 extern crate glium;
 extern crate specs;
 extern crate time;
+extern crate rand;
+extern crate cgmath;
 
 pub mod component;
 pub mod renderer;
 pub mod state;
+pub mod terrain;
+pub mod physics;
 
 use component::*;
 use state::GlobalState;
 use glium::backend::glutin_backend::GlutinFacade;
 use glium::glutin::Event;
-
-/// System for updating position according to velocity.
-struct SysPosUpdate;
-impl specs::System<GlobalState> for SysPosUpdate {
-  fn run(&mut self, arg: specs::RunArg, state: GlobalState) {
-    use specs::Join;
-    let (mut all_aabb, all_vel) = arg.fetch(|w| {
-      (w.write::<CompAABB>(), w.read::<CompVel>())
-    });
-    for (aabb, vel) in (&mut all_aabb, &all_vel).join() {
-      aabb.0 += vel.0 * (state.get_delta_in_s());
-      aabb.1 += vel.1 * (state.get_delta_in_s());
-    }
-  }
-}
+use rand::{Rng, StdRng};
 
 fn init_display() -> GlutinFacade {
     use glium::DisplayBuild;
@@ -45,23 +35,34 @@ fn main() {
   let mut planner : specs::Planner<GlobalState> = {
     let mut w = specs::World::new();
     w.register::<CompAABB>();
-    w.register::<CompVel>();
+    w.register::<CompBody>();
     w.register::<CompColor>();
-    w.create_now().with(CompAABB(0.0, 0.0, 32.0, 32.0)).with(CompColor(0.0, 1.0, 0.0, 1.0)).build();
+    w.create_now().with(CompAABB([0.0, 0.0, 32.0, 32.0]))
+      .with(CompColor([0.0, 1.0, 0.0, 1.0]))
+      .with(CompBody{vel: [0.0, 0.0], acc: [0.5, 0.3], mass: 5.0, flags: BODY_GRAVITY})
+      .build();
     specs::Planner::new(w)
   };
 
   let mut renderer = renderer::Renderer::new(&display);
 
-  planner.add_system::<SysPosUpdate>(SysPosUpdate, "update", 0);
   planner.add_system::<renderer::SysRenderer>(renderer::SysRenderer::new(&renderer), "render", 0);
+  planner.add_system::<physics::RigidBody>(physics::RigidBody, "ph_rigid_body", 0);
+
+  let mut rng = StdRng::new().unwrap();
+  let mut voronoi_sites = vec![];
+  for ii in 0..4 {
+    for jj in 0..4 {
+      voronoi_sites.push([100.0 + (ii as f32) * 50.0, 100.0 + (jj as f32) * 50.0 + ii as f32]);
+    }
+  }
 
   loop {
     // Check input
     for ev in display.poll_events() {
       match ev {
         Event::Closed => return,
-        _ => ()
+          _ => ()
       }
     }
 
@@ -72,6 +73,9 @@ fn main() {
     // Dispatch ECS with the global state object
     planner.dispatch(global_state.clone());
     planner.wait();
+
+    // Add voronoi points test data
+    terrain::voronoi::voronoi(&voronoi_sites, renderer.get_renderer_controller());
 
     // Receive any vertex data sent by the ECS
     renderer.recv_data();

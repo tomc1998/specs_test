@@ -8,6 +8,8 @@ authors = ["Thomas Cheng <thomascheng1998@googlemail.com>"]
 time = "*"
 specs = "0.8.0"
 glium = "*"
+rand = "*"
+cgmath = "*"
 
 [features]
 

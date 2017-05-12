@@ -1,6 +1,7 @@
 mod color;
-mod aabb;
+mod body;
 
 pub use self::color::CompColor;
-pub use self::aabb::CompAABB;
-pub use self::aabb::CompVel;
+pub use self::body::CompBody;
+pub use self::body::CompAABB;
+pub use self::body::BODY_GRAVITY;
